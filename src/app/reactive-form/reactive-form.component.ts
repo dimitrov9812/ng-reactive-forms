@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { FormGroup, FormControl, NgForm, FormBuilder, Validators, AbstractControl, ValidatorFn } from '@angular/forms';
+import { FormGroup, FormControl, NgForm, FormBuilder, Validators, AbstractControl, ValidatorFn, FormArray } from '@angular/forms';
 import { Customer } from '../customers/customer';
-
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 function ratingRange(min: number, max:number) :ValidatorFn {
   return (c: AbstractControl): {[key:string]: boolean} => {
@@ -20,6 +20,16 @@ function ratingRange(min: number, max:number) :ValidatorFn {
 export class ReactiveFormComponent implements OnInit {
   public customerForm: FormGroup;
   public customer: Customer = new Customer();
+  public emailMessage: string = '';
+
+  get addresses(): FormArray {
+    return this.customerForm.get('addresses').value as FormArray;
+  }
+
+  private validationMessages = {
+    required: 'Please enter your email address.',
+    email: 'Please enter a valid email address.'
+  }
 
   constructor(private formBuilder: FormBuilder) { }
 
@@ -41,12 +51,47 @@ export class ReactiveFormComponent implements OnInit {
       rating: [null, ratingRange(1,5)],
       notification: 'email',
       sendCatalog: true,
+      addresses: this.formBuilder
+                     .array([this.buildAdresses()])
     })
+
+    this.customerForm.get('notification')
+        .valueChanges
+        .subscribe((val) => {
+           this.setNotification(val);
+        })
+
+    const emailControl = this.customerForm.get('email');
+      emailControl.valueChanges
+                  .pipe(debounceTime(500),
+                        distinctUntilChanged())
+                  .subscribe(() => {
+                     this.setMessage(emailControl)
+                  })
   }
 
   save() {
     console.log(this.customerForm);
     console.log("SAVED: " + JSON.stringify(this.customerForm.value))
+  }
+
+  setMessage(c: AbstractControl): void {
+    this.emailMessage = '';
+    if ((c.touched || c.dirty) && c.errors) {
+      this.emailMessage = Object.keys(c.errors).map(
+        (key) => this.validationMessages[key]).join('');
+    }
+  }
+
+  buildAdresses(): FormGroup {
+    return this.formBuilder.group({
+      addressType: 'home',
+      street1: '',
+      street2: '',
+      city: '',
+      state: '',
+      zip: ''
+    })
   }
 
   setValue() {
@@ -65,6 +110,11 @@ export class ReactiveFormComponent implements OnInit {
       firstName: 'Alex',
       lastName: "Dimitrov",
     })
+  }
+
+  addAddress() {
+    this.customerForm.get('addresses').value.push(this.buildAdresses());
+    // this.customerForm.get('addresses').push(this.buildAdresses());
   }
 
   setNotification(notifyWith: string) {
