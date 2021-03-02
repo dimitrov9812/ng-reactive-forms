@@ -1,0 +1,17 @@
+<h1>Template vs Reactive Forms</h1>
+<div style="margin-bottom: 20px;">
+  <button class="btn btn-default"
+          [routerLink]="['template']"
+          routerLinkActive="active" >
+    Template Forms
+  </button>
+  <button class="btn btn-default"
+          [routerLink]="['reactive']"
+          routerLinkActive="active">
+    Reactive Forms
+  </button>
+</div>
+
+<div class='container'>
+  <router-outlet></router-outlet>
+</div>
